@@ -1,0 +1,454 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+namespace Fotboll_betting
+{
+    class Program
+    {
+        static string WhatToWrite(int placement, string team, string points)
+        {
+            string returning = $"({placement}) | {team}";
+            while (returning.Length != 26)
+            {
+                returning += " ";
+            }
+            returning += $"|{points}|";
+            return returning;
+        }
+        static void PrintSheet()
+        {
+            List<string> superettanTeams = ReadFile("sheet.txt");
+            List<string> superettanSheet = superettanTeams;
+
+            int placement = 1;
+            for(int i = 0; i != superettanSheet.Count; i += 2)
+            {
+                if (placement == 3)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                }
+                if(placement == 4)
+                {
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                }
+                if(placement == 13)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                }
+                if(placement == 15)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                }
+                Console.WriteLine("______________________________");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine(WhatToWrite(placement, superettanSheet[i], superettanSheet[i + 1]));
+                placement++;
+            }
+            Console.WriteLine("______________________________");
+        }
+        static void RemoveAccount(List<string> accounts)
+        {
+            bool running = true;
+            while (running)
+            {
+                int accountNumber = 1;
+                for (int i = 0; i <= accounts.Count - 1; i += 2)
+                {
+                    Console.WriteLine($"({accountNumber}) Användarnamn: {accounts[i]}\n     Lössenord: {accounts[i + 1]}");
+                    accountNumber++;
+                }
+                Console.WriteLine("Vilket konto vill du ta bort? (0 för att gå tillbaka):");
+                try
+                {
+                    int option = int.Parse(Console.ReadLine());
+                    if(option != 1)
+                    {
+                        int removeAccountIndex = (option - 2) + option;
+                        accounts.RemoveAt(removeAccountIndex);
+                        accounts.RemoveAt(removeAccountIndex);
+                        WriteToFile(accounts, "accounts.txt");
+                        running = false;
+                    }
+                    else
+                    {
+                        Console.Clear();
+                        Console.WriteLine("Du kan inte ta bort admin kontot!");
+                    }
+                    if (option == 0)
+                    {
+                        running = false;
+                        break;
+                    }
+                }
+                catch
+                {
+                    Console.Clear();
+                    Console.WriteLine("Ange ett giltigt nummer!");
+                }
+
+            }
+            
+            
+        }
+        static void AddAccount(List<string> accounts)
+        {
+            bool running = true;
+            while (running)
+            {
+                Console.Write("Nytt användarnamn (bara bokstäver): ");
+                string username = Console.ReadLine();
+                if (!accounts.Contains(username))
+                {
+                    Console.Write($"Lösenord för {username} (minst en siffra): ");
+                    string password = Console.ReadLine();
+                    accounts.Add(username);
+                    accounts.Add(password);
+                    WriteToFile(accounts, "accounts.txt");
+                    running = false;
+                }
+                else
+                {
+                    Console.Clear();
+                    Console.WriteLine("Användarnamnet finns redan!");
+                }
+            }
+            
+        }
+        static void ChangeDateOrTime(List<string> matches)
+        {
+            bool running = true;
+            while (running)
+            {
+                ShowMatches(matches);
+                Console.Write("Vilken match vill du ändra? (0 för att gå tillbaka): ");
+                string removeMatch = Console.ReadLine();
+                try
+                {
+                    int remove = int.Parse(removeMatch);
+                    if (remove == 0)
+                    {
+                        running = false;
+                        break;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            Console.Write("Nytt datum och tid: ");
+                            string newDateAndTime = Console.ReadLine();
+                            int cangeIndex = ((remove - 1) * 4) + 2;
+                            matches[cangeIndex] = newDateAndTime;
+                            WriteToFile(matches, "matches.txt");
+                            running = false;
+                            break;
+                        }
+                        catch
+                        {
+                            Console.Clear();
+                            Console.WriteLine("Ej giltigt alternativ");
+
+                        }
+                    }
+                }
+                catch
+                {
+                    Console.Clear();
+                    Console.WriteLine("Ej giltigt alternativ");
+                }
+            }
+        }
+        static void RemoveMatch(List<string> matches)
+        {
+            bool running = true;
+            while (running)
+            {
+                ShowMatches(matches);
+                Console.Write("Vilken match vill du ta bort? (0 för att gå tillbaka): ");
+                string removeMatch = Console.ReadLine();
+                try
+                {
+                    int remove = int.Parse(removeMatch);
+                    if (remove == 0)
+                    {
+                        running = false;
+                        break;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            int removeIndex = (remove - 1) * 4;
+                            for (int i = 0; i != 5; i++)
+                            {
+                                matches.RemoveAt(removeIndex);
+                            }
+                            WriteToFile(matches, "matches.txt");
+                            running = false;
+                            break;
+                        }
+                        catch
+                        {
+                            Console.Clear();
+                            Console.WriteLine("Ej giltigt alternativ");
+
+                        }
+                    }
+                }
+                catch
+                {
+                    Console.Clear();
+                    Console.WriteLine("Ej giltigt alternativ");
+                }
+            }
+        }
+        static void ShowMatches(List<string> matches)
+        {
+            int match = 1;
+            for (int i = 0; i <= matches.Count - 1; i += 4)
+            {
+                Console.WriteLine($"({match}) {matches[i]} - {matches[i + 1]} ({matches[i + 2]})");
+                match++;
+            }
+        }
+        static void AddMatch(List<string> saveMatch)
+        {
+            string fileName = "matches.txt";
+            Console.Write("Hemmalag: ");
+            string homeTeam = Console.ReadLine();
+            Console.Write("Bortalag: ");
+            string awayTeam = Console.ReadLine();
+            Console.Write("Start (datum + tid, 22/12/2 - 18:00): ");
+            string dateOfMatch = Console.ReadLine();
+            saveMatch.Add(homeTeam);
+            saveMatch.Add(awayTeam);
+            saveMatch.Add(dateOfMatch);
+            saveMatch.Add("0 - 0");
+            WriteToFile(saveMatch, fileName);
+        }
+        static void Gateway(int whereTo, List<string> accounts, List<string> matches)
+        {
+            switch (whereTo)
+            {
+                case 1:
+                    ShowMatches(matches);
+                    return;
+                case 2:
+                    Console.WriteLine("Betta - kommer snart!");
+                    Console.ReadKey();
+                    return;
+                case 3:
+                    PrintSheet();
+                    return;
+                case 1000:
+                    AddMatch(matches);
+                    return;
+                case 2000:
+                    RemoveMatch(matches);
+                    return;
+                case 3000:
+                    ChangeDateOrTime(matches);
+                    return;
+                case 4000:
+                    AddAccount(accounts);
+                    return;
+                case 5000:
+                    RemoveAccount(accounts);
+                    return;
+                case 9000:
+                    UserPage("(Guest)", accounts, matches);
+                    return;
+            }
+        }
+        static void AdminPage(List<string> accounts, List<string> matches)
+        {
+            int optLowest = 1;
+            int optHighest = 9;
+            string option = "9809";
+            while (option == "9809")
+            {
+                Console.Clear();
+                Console.WriteLine("Du är inloggad som admin.");
+                Console.WriteLine("[1] - Lägg till en match");
+                Console.WriteLine("[2] - Ta bort en match");
+                Console.WriteLine("[3] - Ändra datum/tid för en match");
+                Console.WriteLine("[4] - Lägg till ett konto");
+                Console.WriteLine("[5] - Ta bort ett konto");
+                Console.WriteLine("[6] - ");
+                Console.WriteLine("[7] - ");
+                Console.WriteLine("[8] - ");
+                Console.WriteLine("[9] - Logga in som användare");
+                option = Console.ReadLine();
+                try
+                {
+                    if (int.Parse(option) >= optLowest == false || int.Parse(option) <= optHighest == false)
+                    {
+                        option = "9809";
+                    }
+                    else
+                    {
+                        Gateway(int.Parse(option) * 1000, accounts, matches);
+                        option = "9809";
+                    }
+                }
+                catch
+                {
+                    option = "9809";
+                }
+            }
+        }
+        static void UserPage(string user, List<string> accounts, List<string> matches)
+        {
+            int optLowest = 1;
+            int optHighest = 3;
+            string option = "9809";
+            while (option == "9809")
+            {
+                Console.Clear();
+                Console.WriteLine("Välkommen " + user + "!");
+                Console.WriteLine("[1] - Se matcher");
+                Console.WriteLine("[2] - Betta på en match");
+                Console.WriteLine("[3] - Se tabellen");
+                Console.WriteLine("[4] - ");
+                Console.WriteLine("[5] - ");
+                Console.WriteLine("[6] - ");
+                Console.WriteLine("[7] - ");
+                Console.WriteLine("[8] - ");
+                Console.WriteLine("[9] - ");
+                option = Console.ReadLine();
+                try
+                {
+                    if (int.Parse(option) >= optLowest == false || int.Parse(option) <= optHighest == false)
+                    {
+                        option = "9809";
+                    }
+                    else
+                    {
+                        Gateway(int.Parse(option), accounts, matches);
+                        option = "9809";
+                    }
+                }
+                catch
+                {
+                    option = "9809";
+                }
+                Console.ReadKey();
+            }
+        }
+        static string Start(List<string> accounts)
+        {
+            string returning = "n";
+            bool running = true;
+            while (running)
+            {
+                Console.WriteLine("Jacobs sprotbetting!");
+                Console.Write("Användarnamn: ");
+                string userInput = Console.ReadLine();
+                Console.Write("Lössenord: ");
+                string passwordInput = Console.ReadLine();
+                if (accounts.Contains(userInput))
+                {
+                    for (int i = 0; i != accounts.Count; i += 2)
+                    {
+                        if (accounts[i] == userInput)
+                        {
+                            if (accounts[i + 1] == passwordInput)
+                            {
+                                returning = accounts[i];
+                                running = false;
+                                break;
+                            }
+                            else
+                            {
+                                Console.Clear();
+                                Console.WriteLine("Fel användarnamn eller lössenord.");
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    Console.Clear();
+                    Console.WriteLine("Fel användarnamn eller lössenord.");
+                }
+            }
+            return returning;
+        }
+        static void Main(string[] args)
+        {
+            List<string> accounts = ReadFile("accounts.txt");
+            List<string> matches = ReadFile("matches.txt");
+            string user = Start(accounts);
+            if (user == "admin")
+            {
+                AdminPage(accounts, matches);
+            }
+            else
+            {
+                UserPage(user, accounts, matches);
+            }
+        }
+        static List<string> ReadFile(string filename)
+        {
+            List<string> rowsInFile = new List<string>();
+            String line;
+            try
+            {
+                StreamReader sr = new StreamReader(filename);
+                line = sr.ReadLine();
+                rowsInFile.Add(line);
+                while (line != null)
+                {
+                    line = sr.ReadLine();
+                    if (line != null)
+                    {
+                        rowsInFile.Add(line);
+                    }
+                }
+                sr.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception: " + e.Message);
+            }
+            finally
+            {
+
+            }
+            return rowsInFile;
+        }
+        static void WriteToFile(List<string> data, string filename)
+        {
+            try
+            {
+                //Pass the filepath and filename to the StreamWriter Constructor
+                StreamWriter sw = new StreamWriter(filename);
+                //Write all data to file
+                foreach (string line in data)
+                {
+                    sw.WriteLine(line);
+                }
+                //Close the file
+                sw.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception: " + e.Message);
+            }
+            finally
+            {
+                Console.WriteLine("Executing finally block.");
+            }
+        }
+    }
+}
+/*
+loggin
+se matcher
+betta på matcher
+se vad folk har tippat
+admin ska kunna lägga till matcher och resultat
+*/
